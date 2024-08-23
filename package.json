@@ -1,22 +1,12 @@
 {
-  "name": "testvercel",
+  "name": "Student",
   "version": "1.0.0",
+  "description": "Learning CRUD Node, express, mongodb",
   "main": "app.js",
   "scripts": {
     "start": "nodemon server.js",
     "start:prod": "NODE_ENV=production nodemon server.js"
   },
-
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-
-  "engines": {
-    "node": "18.x",
-    "npm": "6.x"
-  },
-  
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
