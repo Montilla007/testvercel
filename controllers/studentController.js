@@ -1,61 +1,98 @@
-const Student = require('../models/studentModel');
+const Student = require('./../models/studentModel');
+const catchAsync = require('./../utils/catchAsync');
+const AppError = require('./../utils/appError');
 
-const getStudent = async (req, res) => {
-    try {
-        const students = await Student.find();
-        res.status(200).json(students);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
+// Application Logic and HTTP Request
 
-const createStudent = async (req, res) => {
-    const { firstName, lastName, course, year, enrolled } = req.body;
+exports.getAllStudent = catchAsync(async (req, res, next) => {
+  //BUILD THE QUERY
+  // 1.) Filtering
+  const queryObj = { ...req.query };
+  const excludedFields = ['studentName'];
+  console.log(queryObj);
+  excludedFields.forEach((el) => delete queryObj[el]);
 
-    try {
-        const newStudent = new Student({ firstName, lastName, course, year, enrolled });
-        await newStudent.save();
-        res.status(201).json(newStudent);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-};
+  // 2.) Advance Filtering
+  let queryStr = JSON.stringify(queryObj);
+  queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+  console.log(JSON.parse(queryStr));
 
-const updateStudent = async (req, res) => {
-    const { id } = req.params;
-    const { firstName, lastName, course, year, enrolled } = req.body;
+  let query = Student.find(JSON.parse(queryStr));
 
-    try {
-        const updatedStudent = await Student.findByIdAndUpdate(
-            id,
-            { firstName, lastName, course, year, enrolled },
-            { new: true, runValidators: true }  // `new: true` to return the updated document, `runValidators: true` to apply schema validations
-        );
+  // 3.) Sorting
+  if (req.query.sort) {
+    query = query.sort(req.query.sort);
+  }
 
-        if (!updatedStudent) {
-            return res.status(404).json({ message: 'Student not found' });
-        }
+  // // 4.) Limiting Fields
+  // if (req.query.fields) {
+  //   const fields = req.query.fields.split(',').join(' ');
+  //   query = query.select(fields);
+  // } else {
+  //   query = query.select('-__v');
+  // }
 
-        res.status(200).json(updatedStudent);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-};
+  // Executing the query
+  const student = await query;
 
-const deleteStudent = async (req, res) => {
-    const { id } = req.params;
+  // Send Response
+  res.status(200).json({
+    status: 'success',
+    results: student.length,
+    data: {
+      student,
+    },
+  });
+});
 
-    try {
-        const deletedStudent = await Student.findByIdAndDelete(id);
+exports.getStudent = catchAsync(async (req, res, next) => {
+  const student = await Student.findById(req.params.id);
+  if (!student) {
+    return next(new AppError('No student has found with that ID', 404));
+  }
+  res.status(200).json({
+    status: 'success',
+    data: {
+      student,
+    },
+  });
+});
 
-        if (!deletedStudent) {
-            return res.status(404).json({ message: 'Student not found' });
-        }
+exports.createStudent = catchAsync(async (req, res, next) => {
+  const newStudent = await Student.create(req.body);
 
-        res.status(200).json({ message: 'Student deleted', student: deletedStudent });
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-};
+  res.status(201).json({
+    status: 'success',
+    data: {
+      student: newStudent,
+    },
+  });
+});
 
-module.exports = { getStudent, createStudent, updateStudent, deleteStudent };
+exports.updateStudent = catchAsync(async (req, res, next) => {
+  const student = await Student.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  });
+  if (!student) {
+    return next(new AppError('No student has found with that ID', 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      student: student,
+    },
+  });
+});
+
+exports.deleteStudent = catchAsync(async (req, res, next) => {
+  const student = await Student.findByIdAndDelete(req.params.id);
+  if (!student) {
+    return next(new AppError('No student has found with that ID', 404));
+  }
+  res.status(204).json({
+    status: 'success',
+    data: null,
+  });
+});

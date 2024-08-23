@@ -5,12 +5,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .get(studentController.getStudent)
+  .get(studentController.getAllStudent)
   .post(studentController.createStudent);
 
 router
   .route('/:id')
-  .put(studentController.updateStudent)
+  .get(studentController.getStudent)
+  .patch(studentController.updateStudent)
   .delete(studentController.deleteStudent);
 
 module.exports = router;
